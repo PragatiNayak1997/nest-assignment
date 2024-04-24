@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   CanActivate,
   ExecutionContext,
   Injectable,
@@ -17,14 +18,17 @@ export class AuthGuard implements CanActivate {
   ) {}
   async canActivate(context: ExecutionContext) {
     const request = context.switchToHttp().getRequest();
-    const [type, accessToken] = request.headers.authorization?.split(' ') ?? [];  
+    const [type, accessToken] = request.headers.authorization?.split(' ') ?? [];
+    if (!accessToken) return false
+
     const decode = await this.jwtService.decode(accessToken);
+    
     const permissions = await this.getUserPermission(decode.role);
     await this.validatePermission(permissions as string[], request.method);
     return true;
   }
 
-  async getUserPermission(role:RoleName) {
+  async getUserPermission(role: RoleName) {
     const roles = await this.databaseService.getRole(role);
     const permissions = roles.Permissions;
     return permissions;
